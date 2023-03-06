@@ -2,12 +2,12 @@ package routes
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/rjkoh/golang-assessment-api/controllers"
+	"github.com/rjkoh/golang-assessment-api/pkg/controllers"
 )
 
 func APIRoutes(router *mux.Router) {
 	router.HandleFunc("/api/register", controllers.RegisterStudents).Methods("POST")
-	router.HandleFunc("/api/commonstudents/{teacher+}", controllers.findCommonStudents).Methods("GET")
+	router.HandleFunc("/api/commonstudents/{teacher+}", controllers.FindCommonStudents).Methods("GET")
 	router.HandleFunc("/api/suspend", controllers.SuspendStudent).Methods("POST")
-	router.HandleFunc("/api/retrievefornotifications", controllers.SuspendStudent).Methods("POST")
+	router.HandleFunc("/api/retrievefornotifications", controllers.RetrieveStudentsForNotification).Methods("POST")
 }
