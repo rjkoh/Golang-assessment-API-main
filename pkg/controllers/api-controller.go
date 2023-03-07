@@ -11,19 +11,27 @@ import (
 )
 
 func RegisterStudents(writer http.ResponseWriter, req *http.Request) {
-	RegStudent := &models.Student{IsSuspended: false}
-	utils.ParseBody(req, RegStudent)
-	err := models.AddStudent(*RegStudent)
-	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
-		return
+	type Reg struct {
+		Teacher  string   `json:"teacher"`
+		Students []string `json:"students"`
 	}
-	writer.WriteHeader(http.StatusNoContent)
+	var reg Reg
+	utils.ParseBody(req, &reg)
+	for _, student := range reg.Students {
+		err := models.AddStudent(reg.Teacher, student)
+		if err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
+			if er != nil {
+				log.Printf("failed to write response: %v", er)
+			}
+			return
+		}
+	}
+
 	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusNoContent)
+
 }
 
 func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
@@ -73,9 +81,12 @@ func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func SuspendStudent(writer http.ResponseWriter, req *http.Request) {
-	email := ""
-	utils.ParseBody(req, email)
-	err := models.Suspend(email)
+	type Suspended struct {
+		Student string `json:"student"`
+	}
+	var email Suspended
+	utils.ParseBody(req, &email)
+	err := models.Suspend(email.Student)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
@@ -84,8 +95,9 @@ func SuspendStudent(writer http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
-	writer.WriteHeader(http.StatusNoContent)
+
 	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusNoContent)
 }
 
 func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Request) {
@@ -94,8 +106,8 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 		Notification string `json:"notification"`
 	}
 
-	rcvNoti := Noti{}
-	utils.ParseBody(req, rcvNoti)
+	var rcvNoti Noti
+	utils.ParseBody(req, &rcvNoti)
 	rows := models.GetNotifiableStudents(getEmails(rcvNoti.Notification), rcvNoti.Teacher)
 
 	type Response struct {

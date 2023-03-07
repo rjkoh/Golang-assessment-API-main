@@ -14,7 +14,7 @@ type Student struct {
 	IsSuspended bool   `form:"isSuspended" json:"isSuspended"`
 }
 
-func AddStudent(stud Student) error {
+func AddStudent(teacher string, email string) error {
 	query := "INSERT INTO Student(email, teacher, isSuspended) VALUES (?, ?, ?)"
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
@@ -27,7 +27,7 @@ func AddStudent(stud Student) error {
 		return err
 	}
 
-	res, err := stmt.ExecContext(ctx, stud.Email, stud.Teacher, stud.IsSuspended)
+	res, err := stmt.ExecContext(ctx, email, teacher, false)
 	if err != nil {
 		log.Printf("Error %s when executing", err)
 		return err
@@ -39,16 +39,16 @@ func AddStudent(stud Student) error {
 		return err
 	}
 
-	log.Printf("%d student created, %+v", rows, stud)
+	log.Printf("%d student created, %+v", rows, email)
 
 	return nil
 }
 
 func FindCommon(teachers []string) *sql.Rows {
-	query := "SELECT email FROM Student WHERE teacher = " + teachers[0]
+	query := "SELECT email FROM Student WHERE teacher = '" + teachers[0] + "'"
 
 	for i := 1; i < len(teachers); i++ {
-		intersect := "INTERSECT SELECT email FROM Student WHERE teacher = " + teachers[i]
+		intersect := "INTERSECT SELECT email FROM Student WHERE teacher = '" + teachers[i] + "'"
 		query = query + " " + intersect
 	}
 
@@ -93,12 +93,12 @@ func Suspend(email string) error {
 }
 
 func GetNotifiableStudents(emails []string, teacher string) *sql.Rows {
-	withTeacherQuery := fmt.Sprintf("SELECT email FROM Student WHERE teacher = %s AND isSuspended = FALSE", teacher)
+	withTeacherQuery := fmt.Sprintf("SELECT email FROM Student WHERE teacher = '%s' AND isSuspended = FALSE", teacher)
 
-	mentionedQuery := "SELECT email FROM Student WHERE email = " + emails[0]
+	mentionedQuery := "SELECT email FROM Student WHERE email = '" + emails[0] + "'"
 
 	for i := 1; i < len(emails); i++ {
-		next := "OR email = " + emails[i]
+		next := "OR email = '" + emails[i] + "'"
 		mentionedQuery += next
 	}
 

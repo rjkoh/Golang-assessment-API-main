@@ -12,4 +12,9 @@ var db *sql.DB
 func init() {
 	config.Connect()
 	db = config.GetDB()
+
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS student (Email TEXT NOT NULL, Teacher TEXT NOT NULL, IsSuspended BOOLEAN NOT NULL DEFAULT FALSE)")
+	if err != nil {
+		panic(err)
+	}
 }
