@@ -139,8 +139,8 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	writer.WriteHeader(http.StatusOK)
 	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
 	writer.Write(jsonData)
 }
 
