@@ -13,5 +13,5 @@ func main() {
 	router := mux.NewRouter()
 	routes.APIRoutes(router)
 	http.Handle("/", router)
-	log.Fatal(http.ListenAndServe("localhost:9010", router))
+	log.Fatal(http.ListenAndServe(":9010", router))
 }

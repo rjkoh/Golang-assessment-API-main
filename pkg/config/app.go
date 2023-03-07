@@ -2,6 +2,7 @@ package config
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -9,8 +10,10 @@ import (
 var db *sql.DB
 var err error
 
+const password = ""
+
 func Connect() {
-	db, err = sql.Open("mysql", "root:P@ssw0rd!@tcp(localhost:3306)/")
+	db, err = sql.Open("mysql", fmt.Sprintf("root:%s@tcp(localhost:3306)/", password))
 	if err != nil {
 		panic(err.Error())
 	}
