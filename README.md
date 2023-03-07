@@ -18,7 +18,7 @@ Written by Koh Rui Jie
 
 8. Run `go run main.go` in the terminal. Ensure you are in the `Golang-assessment-API-main/cmd/main/` directory
 
-9. The API is now ready. To test locally, please use local hose port 9010.
+9. The API is now ready. To test locally, please use local host port 9010.
     - For registering students, use Request URL `localhost:9010/api/register`
     - For finding common students, use Request URL `localhost:9010/api/commonstudents?teacher=...` with the teacher's emails
     - For suspending a student, use Request URL `localhost:9010/api/suspend`
