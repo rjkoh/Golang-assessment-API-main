@@ -45,7 +45,15 @@ func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	rows := models.FindCommon(teachers)
+	rows, err := models.FindCommon(teachers)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
+		if er != nil {
+			log.Printf("failed to write response: %v", er)
+		}
+		return
+	}
 
 	type Response struct {
 		Students []string `json:"students"`
@@ -108,7 +116,15 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 
 	var rcvNoti Noti
 	utils.ParseBody(req, &rcvNoti)
-	rows := models.GetNotifiableStudents(getEmails(rcvNoti.Notification), rcvNoti.Teacher)
+	rows, err := models.GetNotifiableStudents(getEmails(rcvNoti.Notification), rcvNoti.Teacher)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
+		if er != nil {
+			log.Printf("failed to write response: %v", er)
+		}
+		return
+	}
 
 	type Response struct {
 		Recipients []string `json:"recipients"`
