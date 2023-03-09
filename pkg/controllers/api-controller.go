@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -17,14 +18,11 @@ func RegisterStudents(writer http.ResponseWriter, req *http.Request) {
 	}
 	var reg Reg
 	utils.ParseBody(req, &reg)
+
 	for _, student := range reg.Students {
 		err := models.AddStudent(reg.Teacher, student)
 		if err != nil {
-			writer.WriteHeader(http.StatusBadRequest)
-			er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-			if er != nil {
-				log.Printf("failed to write response: %v", er)
-			}
+			handleError(writer, req, err)
 			return
 		}
 	}
@@ -37,21 +35,13 @@ func RegisterStudents(writer http.ResponseWriter, req *http.Request) {
 func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 	teachers, ok := req.URL.Query()["teacher"]
 	if !ok {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: "Missing teacher parameter"})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
+		handleError(writer, req, fmt.Errorf("Unable to read teacher parameters"))
 		return
 	}
 
 	rows, err := models.FindCommon(teachers)
 	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
+		handleError(writer, req, err)
 		return
 	}
 
@@ -64,11 +54,7 @@ func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 		var email string
 		err := rows.Scan(&email)
 		if err != nil {
-			writer.WriteHeader(http.StatusBadRequest)
-			er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-			if er != nil {
-				log.Printf("failed to write response: %v", er)
-			}
+			handleError(writer, req, err)
 			return
 		}
 		response.Students = append(response.Students, email)
@@ -76,14 +62,11 @@ func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 
 	jsonData, err := json.Marshal(response)
 	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
+		handleError(writer, req, err)
 		return
 	}
 
+	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusOK)
 	writer.Write(jsonData)
 }
@@ -96,11 +79,7 @@ func SuspendStudent(writer http.ResponseWriter, req *http.Request) {
 	utils.ParseBody(req, &email)
 	err := models.Suspend(email.Student)
 	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
+		handleError(writer, req, err)
 		return
 	}
 
@@ -118,11 +97,7 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 	utils.ParseBody(req, &rcvNoti)
 	rows, err := models.GetNotifiableStudents(getEmails(rcvNoti.Notification), rcvNoti.Teacher)
 	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
+		handleError(writer, req, err)
 		return
 	}
 
@@ -135,11 +110,7 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 		var email string
 		err := rows.Scan(&email)
 		if err != nil {
-			writer.WriteHeader(http.StatusBadRequest)
-			er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-			if er != nil {
-				log.Printf("failed to write response: %v", er)
-			}
+			handleError(writer, req, err)
 			return
 		}
 		response.Recipients = append(response.Recipients, email)
@@ -147,11 +118,7 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 
 	jsonData, err := json.Marshal(response)
 	if err != nil {
-		writer.WriteHeader(http.StatusBadRequest)
-		er := json.NewEncoder(writer).Encode(struct{ message string }{message: err.Error()})
-		if er != nil {
-			log.Printf("failed to write response: %v", er)
-		}
+		handleError(writer, req, err)
 		return
 	}
 
@@ -163,4 +130,16 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 func getEmails(str string) []string {
 	re := regexp.MustCompile(`\b\w+@\w+\.\w+\b`)
 	return re.FindAllString(str, -1)
+}
+
+func handleError(writer http.ResponseWriter, req *http.Request, err error) {
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusBadRequest)
+	jsondata, er := json.Marshal(struct {
+		Message string `json:"message"`
+	}{Message: err.Error()})
+	if er != nil {
+		log.Printf("failed to write response: %v", er)
+	}
+	writer.Write(jsondata)
 }

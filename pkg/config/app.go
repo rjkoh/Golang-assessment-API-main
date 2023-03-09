@@ -10,7 +10,7 @@ import (
 var db *sql.DB
 var err error
 
-const password = ""
+const password = "P@ssw0rd!"
 
 func Connect() {
 	db, err = sql.Open("mysql", fmt.Sprintf("root:%s@tcp(localhost:3306)/", password))

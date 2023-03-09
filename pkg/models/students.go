@@ -55,9 +55,16 @@ func FindCommon(teachers []string) (*sql.Rows, error) {
 	if len(teachers) == 0 {
 		return nil, fmt.Errorf("Missing teachers parameters")
 	}
+	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	if !re.MatchString(teachers[0]) {
+		return nil, fmt.Errorf("Invalid teacher email")
+	}
 	query := "SELECT DISTINCT email FROM Student WHERE teacher = '" + teachers[0] + "'"
 
 	for i := 1; i < len(teachers); i++ {
+		if !re.MatchString(teachers[i]) {
+			return nil, fmt.Errorf("Invalid teacher email")
+		}
 		intersect := "INTERSECT SELECT DISTINCT email FROM Student WHERE teacher = '" + teachers[i] + "'"
 		query = query + " " + intersect
 	}
@@ -78,7 +85,7 @@ func Suspend(email string) error {
 	re := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 	if !re.MatchString(email) {
-		return fmt.Errorf("Invalid teacher email or student email")
+		return fmt.Errorf("Invalid student email")
 	}
 
 	query := "UPDATE Student SET isSuspended = TRUE WHERE email = ?"
