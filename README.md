@@ -55,3 +55,9 @@ This API is designed similar to a MVC architecture.
 There exists only the `Student` table for space optimisation. There is no need for a `Teachers` table since the current requirements do not perform any queries on the teachers.
 
 `model.go` exists to initialise the database tables, as an "overarching" file over all various entity tables. The decision to not do this within `students.go` is for scalability and proper delegation of responsibilities.
+
+## Error handling
+Any invalid syntax e.g. invalid email formats will or errors will receive a HTTP STATUS 400 (BAD REQUEST) response, with the error message in json format.
+
+An example of an error message due to invalid student email is provided here:
+<img src="./img/errormsg.png" alt="error message on invalid email">
