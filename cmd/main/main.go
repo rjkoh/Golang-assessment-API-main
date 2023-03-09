@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -14,5 +13,5 @@ func main() {
 	router := mux.NewRouter()
 	routes.APIRoutes(router)
 	http.Handle("/", router)
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), router))
+	log.Fatal(http.ListenAndServe(":9010", router))
 }
