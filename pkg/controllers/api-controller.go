@@ -12,15 +12,21 @@ import (
 )
 
 func RegisterStudents(writer http.ResponseWriter, req *http.Request) {
+	// struct to store data from json request body
 	type Reg struct {
 		Teacher  string   `json:"teacher"`
 		Students []string `json:"students"`
 	}
 	var reg Reg
-	utils.ParseBody(req, &reg)
+	err := utils.ParseBody(req, &reg)
+	if err != nil {
+		handleError(writer, req, err)
+		return
+	}
 
 	for _, student := range reg.Students {
-		err := models.AddStudent(reg.Teacher, student)
+		// add each student into the model and database
+		err = models.AddStudent(reg.Teacher, student)
 		if err != nil {
 			handleError(writer, req, err)
 			return
@@ -29,27 +35,30 @@ func RegisterStudents(writer http.ResponseWriter, req *http.Request) {
 
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusNoContent)
-
 }
 
 func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
+	// extract teachers from request URL
 	teachers, ok := req.URL.Query()["teacher"]
 	if !ok {
 		handleError(writer, req, fmt.Errorf("Unable to read teacher parameters"))
 		return
 	}
 
+	// find students common to the teachers specified
 	rows, err := models.FindCommon(teachers)
 	if err != nil {
 		handleError(writer, req, err)
 		return
 	}
 
+	// struct to store the students specified to convert to json
 	type Response struct {
 		Students []string `json:"students"`
 	}
 
 	response := Response{Students: make([]string, 0)}
+	// add all students found to the slice
 	for rows.Next() {
 		var email string
 		err := rows.Scan(&email)
@@ -60,6 +69,7 @@ func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 		response.Students = append(response.Students, email)
 	}
 
+	// convert students slice into json
 	jsonData, err := json.Marshal(response)
 	if err != nil {
 		handleError(writer, req, err)
@@ -72,12 +82,18 @@ func FindCommonStudents(writer http.ResponseWriter, req *http.Request) {
 }
 
 func SuspendStudent(writer http.ResponseWriter, req *http.Request) {
+	// struct to store the student's email
 	type Suspended struct {
 		Student string `json:"student"`
 	}
 	var email Suspended
-	utils.ParseBody(req, &email)
-	err := models.Suspend(email.Student)
+	err := utils.ParseBody(req, &email)
+	if err != nil {
+		handleError(writer, req, err)
+		return
+	}
+
+	err = models.Suspend(email.Student)
 	if err != nil {
 		handleError(writer, req, err)
 		return
@@ -88,24 +104,33 @@ func SuspendStudent(writer http.ResponseWriter, req *http.Request) {
 }
 
 func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Request) {
+	// struct to store the data in the http request body
 	type Noti struct {
 		Teacher      string `json:"teacher"`
 		Notification string `json:"notification"`
 	}
 
 	var rcvNoti Noti
-	utils.ParseBody(req, &rcvNoti)
+	err := utils.ParseBody(req, &rcvNoti)
+	if err != nil {
+		handleError(writer, req, err)
+		return
+	}
+
+	// find students that are notifiable, either mentioned in the message or under the teacher
 	rows, err := models.GetNotifiableStudents(getEmails(rcvNoti.Notification), rcvNoti.Teacher)
 	if err != nil {
 		handleError(writer, req, err)
 		return
 	}
 
+	// struct to store students found
 	type Response struct {
 		Recipients []string `json:"recipients"`
 	}
 
 	response := Response{Recipients: make([]string, 0)}
+	// add all students into the slice to convert to json
 	for rows.Next() {
 		var email string
 		err := rows.Scan(&email)
@@ -116,6 +141,7 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 		response.Recipients = append(response.Recipients, email)
 	}
 
+	// convert to json
 	jsonData, err := json.Marshal(response)
 	if err != nil {
 		handleError(writer, req, err)
@@ -127,11 +153,14 @@ func RetrieveStudentsForNotification(writer http.ResponseWriter, req *http.Reque
 	writer.Write(jsonData)
 }
 
+// extract email from the given notification
 func getEmails(str string) []string {
+	// with format starting with @, followed by alphanumeric characters and then a "." with alphanumeric characters
 	re := regexp.MustCompile(`\b\w+@\w+\.\w+\b`)
 	return re.FindAllString(str, -1)
 }
 
+// return a http bad request status with the error message
 func handleError(writer http.ResponseWriter, req *http.Request, err error) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.WriteHeader(http.StatusBadRequest)
